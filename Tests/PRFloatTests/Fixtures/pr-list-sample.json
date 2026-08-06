@@ -1,0 +1,24 @@
+[
+  {
+    "number": 42,
+    "title": "fix: login timeout",
+    "headRefName": "feature/login-timeout",
+    "url": "https://github.com/example/repo/pull/42",
+    "body": "## Summary\n\n- [x] Tests\n- [x] Lint\n- [ ] Docs\n",
+    "statusCheckRollup": [
+      { "name": "build", "state": "SUCCESS" },
+      { "name": "unit", "state": "SUCCESS" },
+      { "name": "e2e", "state": "PENDING" }
+    ]
+  },
+  {
+    "number": 39,
+    "title": "docs: agent highlights",
+    "headRefName": "docs/agent-hl",
+    "url": "https://github.com/example/repo/pull/39",
+    "body": "No checklist here.",
+    "statusCheckRollup": [
+      { "name": "build", "state": "FAILURE" }
+    ]
+  }
+]
