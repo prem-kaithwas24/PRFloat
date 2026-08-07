@@ -8,7 +8,6 @@ let package = Package(
     ],
     products: [
         .executable(name: "PRFloat", targets: ["PRFloat"]),
-        .executable(name: "PRFloatCoreValidate", targets: ["PRFloatCoreValidate"]),
         .library(name: "PRFloatCore", targets: ["PRFloatCore"])
     ],
     targets: [
@@ -20,11 +19,6 @@ let package = Package(
             name: "PRFloat",
             dependencies: ["PRFloatCore"],
             path: "Sources/PRFloat"
-        ),
-        .executableTarget(
-            name: "PRFloatCoreValidate",
-            dependencies: ["PRFloatCore"],
-            path: "Sources/PRFloatCoreValidate"
         ),
         .testTarget(
             name: "PRFloatTests",

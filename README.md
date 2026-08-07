@@ -59,16 +59,18 @@ Settings (repo path, window position) are stored in `UserDefaults`.
 
 See `../docs/superpowers/specs/2026-08-06-pr-float-design.md` (or copy under this repo later).
 
+## Tests
+
+```bash
+swift test
+```
+
+Tests use [swift-testing](https://github.com/swiftlang/swift-testing), which ships with the
+Swift toolchain, so they run under Command Line Tools alone — the full Xcode app is not
+required.
+
 ## Not in v1
 
 - Multi-repo watch lists  
 - Agent highlights (Claude / Grok)  
 - Direct GitHub API tokens (uses `gh` only)
-
-## Validate without Xcode
-
-Full `swift test` needs the Xcode app (XCTest). With Command Line Tools only:
-
-```bash
-swift run PRFloatCoreValidate
-```
