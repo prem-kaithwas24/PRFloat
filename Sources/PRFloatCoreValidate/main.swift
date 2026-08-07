@@ -68,6 +68,19 @@ do {
     expect(false, "decode fixture: \(error)")
 }
 
+// The panel's collection behavior must be assignable without AppKit raising:
+// a contradictory value aborts applicationDidFinishLaunching and the app launches
+// with no visible UI at all.
+expect(
+    PanelBehavior.invalidPairReason(PanelBehavior.collectionBehavior) == nil,
+    "panel collection behavior is valid"
+)
+expect(
+    PanelBehavior.invalidPairReason([.canJoinAllSpaces, .moveToActiveSpace])
+        == "window behavior cannot be both canJoinAllSpaces and moveToActiveSpace",
+    "detects canJoinAllSpaces + moveToActiveSpace"
+)
+
 if failed > 0 {
     print("\n\(failed) failure(s)")
     exit(1)

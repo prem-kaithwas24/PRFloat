@@ -1,4 +1,5 @@
 import AppKit
+import PRFloatCore
 import SwiftUI
 
 /// Always-on-top utility panel hosting SwiftUI content.
@@ -53,7 +54,7 @@ final class FloatingPanelController {
         panel.titlebarAppearsTransparent = true
         panel.isFloatingPanel = true
         panel.level = .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .moveToActiveSpace]
+        panel.collectionBehavior = PanelBehavior.collectionBehavior
         panel.isMovableByWindowBackground = true
         panel.hidesOnDeactivate = false
         panel.becomesKeyOnlyIfNeeded = true
