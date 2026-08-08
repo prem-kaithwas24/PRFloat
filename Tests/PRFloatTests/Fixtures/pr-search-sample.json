@@ -1,0 +1,93 @@
+{
+  "data": {
+    "search": {
+      "nodes": [
+        {
+          "number": 42,
+          "title": "fix: login timeout",
+          "url": "https://github.com/example/repo/pull/42",
+          "body": "## Summary\n\n- [x] Tests\n- [x] Lint\n- [ ] Docs\n",
+          "headRefName": "feature/login-timeout",
+          "isDraft": false,
+          "repository": { "nameWithOwner": "example/repo" },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "contexts": {
+                      "nodes": [
+                        { "context": "build", "state": "SUCCESS" },
+                        { "context": "unit", "state": "SUCCESS" },
+                        { "context": "e2e", "state": "PENDING" }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {},
+        {
+          "number": 39,
+          "title": "docs: agent highlights",
+          "url": "https://github.com/example/other/pull/39",
+          "body": "No checklist here.",
+          "headRefName": "docs/agent-hl",
+          "isDraft": false,
+          "repository": { "nameWithOwner": "example/other" },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "contexts": {
+                      "nodes": [
+                        { "name": "lint", "status": "COMPLETED", "conclusion": "FAILURE" }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "number": 7,
+          "title": "wip: draft with running check",
+          "url": "https://github.com/example/repo/pull/7",
+          "body": null,
+          "headRefName": "wip/draft",
+          "isDraft": true,
+          "repository": { "nameWithOwner": "example/repo" },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "statusCheckRollup": {
+                    "contexts": {
+                      "nodes": [
+                        { "name": "build", "status": "IN_PROGRESS", "conclusion": null }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "number": 3,
+          "title": "chore: no checks at all",
+          "url": "https://github.com/example/repo/pull/3",
+          "body": "- [x] done\n",
+          "headRefName": "chore/none",
+          "isDraft": false,
+          "repository": { "nameWithOwner": "example/repo" },
+          "commits": { "nodes": [{ "commit": { "statusCheckRollup": null } }] }
+        }
+      ]
+    }
+  }
+}

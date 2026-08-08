@@ -30,31 +30,45 @@ public struct CheckSummary: Equatable, Sendable {
 }
 
 public struct PRSummary: Identifiable, Equatable, Sendable {
-    public var id: Int { number }
+    /// PR numbers repeat across repositories, so identity must include the repo.
+    public var id: String { "\(repository)#\(number)" }
+
+    /// `owner/repo`, as GitHub's `nameWithOwner`.
+    public let repository: String
     public let number: Int
     public let title: String
     public let headRefName: String
     public let url: URL
+    public let isDraft: Bool
     public let checklistDone: Int
     public let checklistTotal: Int
     public let checks: CheckSummary
 
     public init(
+        repository: String,
         number: Int,
         title: String,
         headRefName: String,
         url: URL,
+        isDraft: Bool = false,
         checklistDone: Int,
         checklistTotal: Int,
         checks: CheckSummary
     ) {
+        self.repository = repository
         self.number = number
         self.title = title
         self.headRefName = headRefName
         self.url = url
+        self.isDraft = isDraft
         self.checklistDone = checklistDone
         self.checklistTotal = checklistTotal
         self.checks = checks
+    }
+
+    /// Just the repo name, for grouping headers where the owner is redundant.
+    public var repositoryShortName: String {
+        repository.split(separator: "/").last.map(String.init) ?? repository
     }
 
     public var checklistLabel: String {

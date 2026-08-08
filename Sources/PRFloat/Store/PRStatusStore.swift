@@ -3,52 +3,62 @@ import Foundation
 import Observation
 import PRFloatCore
 
+/// Open PRs authored by the signed-in user, across every repo they can see.
 @MainActor
 @Observable
 final class PRStatusStore {
-    private static let repoPathKey = "repoPath"
-    private static let pollInterval: TimeInterval = 60
-
-    var repoPath: String? {
-        didSet {
-            if let repoPath {
-                UserDefaults.standard.set(repoPath, forKey: Self.repoPathKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: Self.repoPathKey)
-            }
-        }
+    /// PRs for one repository, so the panel can show grouped headers.
+    struct Group: Identifiable {
+        let repository: String
+        let prs: [PRSummary]
+        var id: String { repository }
     }
 
-    var prs: [PRSummary] = []
-    var isLoading = false
-    var errorMessage: String?
-    var lastRefresh: Date?
+    private(set) var prs: [PRSummary] = []
+    private(set) var isLoading = false
+    private(set) var errorMessage: String?
+    private(set) var isOffline = false
+    private(set) var lastRefresh: Date?
     var isCollapsed = false
 
-    private let service: GitHubCLIService
+    let session: GitHubSession
+    private let settings: AppSettings
     private var timerTask: Task<Void, Never>?
     private var inFlight = false
+    private var consecutiveFailures = 0
 
-    var repoShortName: String {
-        guard let repoPath else { return "No repo" }
-        return URL(fileURLWithPath: repoPath).lastPathComponent
+    init(session: GitHubSession, settings: AppSettings) {
+        self.session = session
+        self.settings = settings
+    }
+
+    // MARK: - Derived state
+
+    var groups: [Group] {
+        Dictionary(grouping: prs, by: \.repository)
+            .map { Group(repository: $0.key, prs: $0.value.sorted { $0.number > $1.number }) }
+            .sorted { $0.repository.localizedCaseInsensitiveCompare($1.repository) == .orderedAscending }
     }
 
     var attentionCount: Int {
         prs.filter(\.needsAttention).count
     }
 
-    init(service: GitHubCLIService = GitHubCLIService()) {
-        self.service = service
-        self.repoPath = UserDefaults.standard.string(forKey: Self.repoPathKey)
-    }
+    /// True once we have shown something, so a failed refresh can keep the old list.
+    var hasData: Bool { !prs.isEmpty }
+
+    // MARK: - Lifecycle
 
     func start() {
         timerTask?.cancel()
         timerTask = Task { [weak self] in
-            await self?.refresh()
+            await self?.restoreAndRefresh()
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(Self.pollInterval * 1_000_000_000))
+                guard let interval = self?.currentInterval(), interval > 0 else {
+                    try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+                    continue
+                }
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
                 guard !Task.isCancelled else { break }
                 await self?.refresh()
             }
@@ -60,18 +70,21 @@ final class PRStatusStore {
         timerTask = nil
     }
 
-    func setRepoPath(_ path: String?) {
-        repoPath = path
-        prs = []
-        errorMessage = nil
-        lastRefresh = nil
-        Task { await refresh() }
+    private func currentInterval() -> TimeInterval {
+        TimeInterval(settings.pollInterval.rawValue)
     }
 
+    private func restoreAndRefresh() async {
+        await session.restore()
+        await refresh()
+    }
+
+    // MARK: - Refresh
+
     func refresh() async {
-        guard let repoPath else {
-            errorMessage = nil
+        guard let client = session.apiClient else {
             prs = []
+            errorMessage = nil
             return
         }
         guard !inFlight else { return }
@@ -83,13 +96,24 @@ final class PRStatusStore {
         }
 
         do {
-            let list = try await service.fetchOpenAuthoredPRs(repoPath: repoPath)
+            let list = try await PullRequestQuery.fetch(using: client)
             prs = list
             errorMessage = nil
+            isOffline = false
+            consecutiveFailures = 0
             lastRefresh = Date()
-        } catch let error as GitHubCLIError {
+        } catch GitHubAPIError.unauthorized {
+            // Expiry is not a data problem — hand it to the session so the UI explains it.
+            session.markExpired()
+            prs = []
+            errorMessage = GitHubAPIError.unauthorized.localizedDescription
+        } catch let error as GitHubAPIError {
+            consecutiveFailures += 1
+            isOffline = (error == .offline)
+            // Keep whatever we last showed; a failed poll must not blank the panel.
             errorMessage = error.localizedDescription
         } catch {
+            consecutiveFailures += 1
             errorMessage = error.localizedDescription
         }
     }
@@ -97,4 +121,26 @@ final class PRStatusStore {
     func openPR(_ pr: PRSummary) {
         NSWorkspace.shared.open(pr.url)
     }
+
+    // MARK: - Presentation helpers
+
+    var statusLine: String {
+        if isOffline, let last = lastRefresh {
+            return "Offline · last updated \(Self.timeFormatter.string(from: last))"
+        }
+        if isOffline { return "Offline" }
+        guard let last = lastRefresh else { return "Not refreshed yet" }
+        let seconds = Int(Date().timeIntervalSince(last))
+        if seconds < 5 { return "Updated just now" }
+        if seconds < 60 { return "Updated \(seconds)s ago" }
+        if seconds < 3600 { return "Updated \(seconds / 60)m ago" }
+        return "Updated \(Self.timeFormatter.string(from: last))"
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter
+    }()
 }
