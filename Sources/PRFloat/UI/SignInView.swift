@@ -52,7 +52,8 @@ struct SignInView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if clientID.isEmpty || showingSetup {
+            // Ask the session, not a captured copy: the ID can be pasted while running.
+            if !session.hasClientID || showingSetup {
                 setupForm
             } else {
                 Button("Sign in with GitHub") { session.signIn() }
@@ -78,10 +79,13 @@ struct SignInView: View {
                 TextField("Client ID", text: $clientIDField)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption.monospaced())
-                Button("Save") {
+                Button("Save & Sign In") {
                     onSaveClientID(clientIDField)
                     showingSetup = false
+                    // The provider now resolves the new ID, so this can succeed.
+                    session.signIn()
                 }
+                .keyboardShortcut(.defaultAction)
                 .controlSize(.small)
                 .disabled(clientIDField.trimmingCharacters(in: .whitespaces).isEmpty)
             }

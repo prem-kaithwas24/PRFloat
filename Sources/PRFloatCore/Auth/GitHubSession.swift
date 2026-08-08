@@ -19,7 +19,9 @@ public final class GitHubSession {
     public private(set) var state: State = .signedOut
     public private(set) var lastError: String?
 
-    private let clientID: String
+    /// Resolved at sign-in time, not captured at init: the user can paste a client ID into
+    /// Settings while the app is running, and that must take effect without a relaunch.
+    private let clientIDProvider: @Sendable () -> String
     private let http: HTTPClient
     private let tokenStore: TokenStore
     private var token: String?
@@ -30,10 +32,25 @@ public final class GitHubSession {
         try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
     }
 
-    public init(clientID: String, http: HTTPClient, tokenStore: TokenStore) {
-        self.clientID = clientID
+    public init(
+        clientIDProvider: @escaping @Sendable () -> String,
+        http: HTTPClient,
+        tokenStore: TokenStore
+    ) {
+        self.clientIDProvider = clientIDProvider
         self.http = http
         self.tokenStore = tokenStore
+    }
+
+    /// Convenience for a fixed ID (tests, previews).
+    public convenience init(clientID: String, http: HTTPClient, tokenStore: TokenStore) {
+        self.init(clientIDProvider: { clientID }, http: http, tokenStore: tokenStore)
+    }
+
+    /// Whether sign-in can even be attempted, so the UI offers setup instead of a button
+    /// that is guaranteed to fail.
+    public var hasClientID: Bool {
+        !clientIDProvider().isEmpty
     }
 
     public var isSignedIn: Bool {
@@ -107,7 +124,7 @@ public final class GitHubSession {
     // MARK: - Device flow
 
     private func runDeviceFlow() async {
-        let client = DeviceFlowClient(clientID: clientID, http: http)
+        let client = DeviceFlowClient(clientID: clientIDProvider(), http: http)
 
         let grant: DeviceCodeGrant
         do {

@@ -2,6 +2,11 @@ import Foundation
 import Testing
 @testable import PRFloatCore
 
+/// Stands in for the live `UserDefaults`-backed client ID lookup.
+final class MutableClientID: @unchecked Sendable {
+    var value: String = ""
+}
+
 @MainActor
 @Suite("GitHub session")
 struct GitHubSessionTests {
@@ -128,6 +133,45 @@ struct GitHubSessionTests {
 
         #expect(session.state == .signedOut)
         #expect(session.lastError == DeviceFlowError.accessDenied.localizedDescription)
+    }
+
+    /// Regression: the session used to capture the client ID at init, so an ID pasted into
+    /// Settings while running had no effect and sign-in kept failing with missingClientID.
+    @Test("A client ID configured after launch is picked up without a relaunch")
+    func clientIDResolvedAtSignInTime() async throws {
+        let box = MutableClientID()
+        let session = GitHubSession(
+            clientIDProvider: { box.value },
+            http: StubHTTPClient([
+                .respond(.json("""
+                {"device_code":"dc","user_code":"LATE-1234",
+                 "verification_uri":"https://github.com/login/device",
+                 "expires_in":900,"interval":1}
+                """)),
+                .respond(.json(#"{"error":"authorization_pending"}"#))
+            ]),
+            tokenStore: InMemoryTokenStore()
+        )
+        session.sleep = { _ in try? await Task.sleep(nanoseconds: 50_000_000) }
+
+        #expect(!session.hasClientID, "no ID configured yet")
+
+        // The user pastes an ID into Settings after the session was built.
+        box.value = "Iv1.pasted_later"
+        #expect(session.hasClientID)
+
+        session.signIn()
+        try await waitUntil {
+            if case .signingIn = session.state { return true }
+            return false
+        }
+
+        guard case .signingIn(let grant) = session.state else {
+            Issue.record("expected the flow to start with the newly configured ID")
+            return
+        }
+        #expect(grant.userCode == "LATE-1234")
+        session.cancelSignIn()
     }
 
     @Test("Signing out clears both state and stored credentials")

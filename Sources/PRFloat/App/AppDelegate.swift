@@ -17,7 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         settings = AppSettings()
         session = GitHubSession(
-            clientID: ClientConfiguration.clientID(),
+            clientIDProvider: { ClientConfiguration.clientID() },
             http: URLSessionHTTPClient(),
             tokenStore: KeychainTokenStore()
         )
