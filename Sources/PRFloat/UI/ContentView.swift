@@ -2,13 +2,30 @@ import SwiftUI
 import PRFloatCore
 import AppKit
 
+/// Top-level sections of the panel.
+enum PanelTab: String, CaseIterable, Identifiable {
+    case overview
+    case orgMetric
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .overview: return "Overview"
+        case .orgMetric: return "Org metric"
+        }
+    }
+}
+
 struct ContentView: View {
     @Bindable var store: PRStatusStore
     @Bindable var agentStore: AgentStore
+    @Bindable var orgStore: OrgMetricsStore
     @Bindable var settings: AppSettings
     let onOpenSettings: () -> Void
 
     @State private var clientID = ClientConfiguration.clientID()
+    @State private var tab: PanelTab = .overview
 
     var body: some View {
         VStack(spacing: 0) {
@@ -141,6 +158,55 @@ struct ContentView: View {
     }
 
     private var signedInBody: some View {
+        VStack(spacing: 0) {
+            tabBar
+
+            switch tab {
+            case .overview:
+                overviewBody
+            case .orgMetric:
+                OrgMetricView(store: orgStore)
+                Divider()
+                orgFooter
+            }
+        }
+    }
+
+    private var tabBar: some View {
+        Picker("", selection: $tab) {
+            ForEach(PanelTab.allCases) { entry in
+                Text(entry.label).tag(entry)
+            }
+        }
+        .labelsHidden()
+        .pickerStyle(.segmented)
+        .controlSize(.small)
+        .padding(.horizontal, Theme.Space.md)
+        .padding(.top, Theme.Space.sm)
+        .padding(.bottom, Theme.Space.xs)
+        .onChange(of: tab) { _, newValue in
+            if newValue == .orgMetric, !orgStore.hasData {
+                Task { await orgStore.refresh() }
+            }
+        }
+    }
+
+    private var orgFooter: some View {
+        HStack(spacing: Theme.Space.sm) {
+            if orgStore.isLoading {
+                ProgressView().controlSize(.small).scaleEffect(0.6)
+            }
+            Spacer(minLength: 0)
+            Text(orgStore.errorMessage ?? "")
+                .font(.caption2)
+                .foregroundStyle(.orange)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, Theme.Space.md)
+        .padding(.vertical, Theme.Space.sm)
+    }
+
+    private var overviewBody: some View {
         VStack(spacing: 0) {
             if let error = store.errorMessage {
                 banner(error, offline: store.isOffline)

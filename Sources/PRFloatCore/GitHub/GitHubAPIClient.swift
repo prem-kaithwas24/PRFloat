@@ -66,6 +66,13 @@ public struct GitHubAPIClient: Sendable {
     private let graphQLURL: URL
     private let restBaseURL: URL
 
+    /// GitHub returns RFC 3339 timestamps; the default decoder would reject them.
+    static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
+
     public init(
         http: HTTPClient,
         token: String,
@@ -109,7 +116,7 @@ public struct GitHubAPIClient: Sendable {
 
         let envelope: GraphQLEnvelope<T>
         do {
-            envelope = try JSONDecoder().decode(GraphQLEnvelope<T>.self, from: response.body)
+            envelope = try Self.decoder.decode(GraphQLEnvelope<T>.self, from: response.body)
         } catch {
             throw GitHubAPIError.decoding(error.localizedDescription)
         }

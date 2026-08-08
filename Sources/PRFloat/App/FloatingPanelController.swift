@@ -12,17 +12,20 @@ final class FloatingPanelController {
 
     private let store: PRStatusStore
     private let agentStore: AgentStore
+    private let orgStore: OrgMetricsStore
     private let settings: AppSettings
     private let onOpenSettings: () -> Void
 
     init(
         store: PRStatusStore,
         agentStore: AgentStore,
+        orgStore: OrgMetricsStore,
         settings: AppSettings,
         onOpenSettings: @escaping () -> Void
     ) {
         self.store = store
         self.agentStore = agentStore
+        self.orgStore = orgStore
         self.settings = settings
         self.onOpenSettings = onOpenSettings
     }
@@ -87,6 +90,7 @@ final class FloatingPanelController {
         let root = ContentView(
             store: store,
             agentStore: agentStore,
+            orgStore: orgStore,
             settings: settings,
             onOpenSettings: onOpenSettings
         )

@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var session: GitHubSession!
     private var store: PRStatusStore!
     private var agentStore: AgentStore!
+    private var orgStore: OrgMetricsStore!
     private var panelController: FloatingPanelController!
     private var settingsWindow: NSWindow?
 
@@ -23,10 +24,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         store = PRStatusStore(session: session, settings: settings)
         agentStore = AgentStore()
+        orgStore = OrgMetricsStore(session: session)
 
         panelController = FloatingPanelController(
             store: store,
             agentStore: agentStore,
+            orgStore: orgStore,
             settings: settings,
             onOpenSettings: { [weak self] in self?.openSettings() }
         )
