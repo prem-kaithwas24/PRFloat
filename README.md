@@ -128,6 +128,7 @@ export NOTARY_PROFILE="prfloat"     # xcrun notarytool store-credentials
 
 - `docs/2026-08-06-pr-float-design.md` — v1
 - `docs/2026-08-08-pr-float-v2-design.md` — v2 (native auth, all-repo PRs, agent tracking)
+- `docs/2026-08-12-pr-review-requests-design.md` — PRs to Review
 
 ## Not included
 

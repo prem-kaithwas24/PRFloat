@@ -318,7 +318,7 @@ struct ContentView: View {
     @ViewBuilder
     private var reviewRequestsSection: some View {
         Section {
-            if store.isLoading && !store.hasData {
+            if store.isLoading && !store.hasReviewData {
                 VStack(spacing: Theme.Space.sm) {
                     SkeletonRow()
                     SkeletonRow()

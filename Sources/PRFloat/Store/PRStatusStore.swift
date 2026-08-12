@@ -3,7 +3,8 @@ import Foundation
 import Observation
 import PRFloatCore
 
-/// Open PRs authored by the signed-in user, across every repo they can see.
+/// Open PRs authored by the signed-in user, and open PRs where they're requested as a
+/// reviewer, across every repo they can see.
 @MainActor
 @Observable
 final class PRStatusStore {
@@ -35,14 +36,11 @@ final class PRStatusStore {
 
     // MARK: - Derived state
 
-    var groups: [Group] {
-        Dictionary(grouping: prs, by: \.repository)
-            .map { Group(repository: $0.key, prs: $0.value.sorted { $0.number > $1.number }) }
-            .sorted { $0.repository.localizedCaseInsensitiveCompare($1.repository) == .orderedAscending }
-    }
+    var groups: [Group] { grouped(prs) }
+    var reviewGroups: [Group] { grouped(reviewRequestedPRs) }
 
-    var reviewGroups: [Group] {
-        Dictionary(grouping: reviewRequestedPRs, by: \.repository)
+    private func grouped(_ list: [PRSummary]) -> [Group] {
+        Dictionary(grouping: list, by: \.repository)
             .map { Group(repository: $0.key, prs: $0.value.sorted { $0.number > $1.number }) }
             .sorted { $0.repository.localizedCaseInsensitiveCompare($1.repository) == .orderedAscending }
     }
@@ -51,8 +49,11 @@ final class PRStatusStore {
         prs.filter(\.needsAttention).count
     }
 
-    /// True once we have shown something, so a failed refresh can keep the old list.
+    /// True once we have shown authored PRs, so a failed refresh can keep the old list.
     var hasData: Bool { !prs.isEmpty }
+
+    /// True once we have shown review-requested PRs, so a failed refresh can keep the old list.
+    var hasReviewData: Bool { !reviewRequestedPRs.isEmpty }
 
     // MARK: - Lifecycle
 
