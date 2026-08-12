@@ -102,6 +102,7 @@ private struct GeneralSettings: View {
             Section("Show") {
                 Toggle("Agents", isOn: $settings.showAgents)
                 Toggle("Pull requests", isOn: $settings.showPullRequests)
+                Toggle("PRs to review", isOn: $settings.showReviewRequests)
             }
 
             Section {
