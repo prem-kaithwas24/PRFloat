@@ -27,6 +27,7 @@ final class AppSettings {
         static let pollInterval = "pollIntervalSeconds"
         static let showAgents = "showAgentsSection"
         static let showPRs = "showPullRequestsSection"
+        static let showReviewRequests = "showReviewRequestsSection"
         static let launchAtLogin = "launchAtLogin"
         static let alwaysOnTop = "alwaysOnTop"
     }
@@ -45,6 +46,10 @@ final class AppSettings {
         didSet { defaults.set(showPullRequests, forKey: Key.showPRs) }
     }
 
+    var showReviewRequests: Bool {
+        didSet { defaults.set(showReviewRequests, forKey: Key.showReviewRequests) }
+    }
+
     var alwaysOnTop: Bool {
         didSet { defaults.set(alwaysOnTop, forKey: Key.alwaysOnTop) }
     }
@@ -59,12 +64,14 @@ final class AppSettings {
             Key.pollInterval: PollInterval.oneMinute.rawValue,
             Key.showAgents: true,
             Key.showPRs: true,
+            Key.showReviewRequests: true,
             Key.alwaysOnTop: true,
             Key.launchAtLogin: false
         ])
         self.pollInterval = PollInterval(rawValue: defaults.integer(forKey: Key.pollInterval)) ?? .oneMinute
         self.showAgents = defaults.bool(forKey: Key.showAgents)
         self.showPullRequests = defaults.bool(forKey: Key.showPRs)
+        self.showReviewRequests = defaults.bool(forKey: Key.showReviewRequests)
         self.alwaysOnTop = defaults.bool(forKey: Key.alwaysOnTop)
         self.launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
     }
