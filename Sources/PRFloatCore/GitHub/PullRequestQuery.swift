@@ -4,6 +4,11 @@ import Foundation
 public enum PullRequestQuery {
     public static let searchQuery = "is:pr is:open author:@me archived:false"
 
+    /// Open PRs where the signed-in user is currently requested as a reviewer.
+    /// GitHub drops a PR from this search once the user submits a review, so the
+    /// list naturally reflects "still waiting on you."
+    public static let reviewRequestedSearchQuery = "is:pr is:open review-requested:@me archived:false"
+
     public static let document = """
     query($q: String!, $first: Int!) {
       search(query: $q, type: ISSUE, first: $first) {
@@ -36,11 +41,16 @@ public enum PullRequestQuery {
     }
     """
 
-    /// Fetches every open PR authored by the signed-in user, across all visible repos.
-    public static func fetch(using client: GitHubAPIClient, limit: Int = 50) async throws -> [PRSummary] {
+    /// Fetches PRs matching `query` (defaulting to PRs authored by the signed-in user),
+    /// across all visible repos.
+    public static func fetch(
+        using client: GitHubAPIClient,
+        limit: Int = 50,
+        query: String = searchQuery
+    ) async throws -> [PRSummary] {
         let payload = try await client.graphQL(
             query: document,
-            variables: ["q": searchQuery, "first": String(limit)],
+            variables: ["q": query, "first": String(limit)],
             as: SearchPayload.self
         )
         return payload.search.nodes.compactMap { $0.value?.toSummary() }

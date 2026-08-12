@@ -85,4 +85,25 @@ struct PullRequestQueryTests {
         #expect(PullRequestQuery.searchQuery.contains("is:open"))
         #expect(PullRequestQuery.searchQuery.contains("author:@me"))
     }
+
+    @Test("A second search targets PRs where the user is requested as a reviewer")
+    func reviewRequestedSearchTerms() {
+        #expect(PullRequestQuery.reviewRequestedSearchQuery.contains("is:pr"))
+        #expect(PullRequestQuery.reviewRequestedSearchQuery.contains("is:open"))
+        #expect(PullRequestQuery.reviewRequestedSearchQuery.contains("review-requested:@me"))
+    }
+
+    @Test("fetch sends the overridden query string as the GraphQL q variable")
+    func fetchUsesOverriddenQuery() async throws {
+        let http = StubHTTPClient(json: #"{"data":{"search":{"nodes":[]}}}"#)
+        let client = GitHubAPIClient(http: http, token: "t")
+
+        let prs = try await PullRequestQuery.fetch(
+            using: client,
+            query: PullRequestQuery.reviewRequestedSearchQuery
+        )
+
+        #expect(prs.isEmpty)
+        #expect(http.bodyString(at: 0).contains("review-requested:@me"))
+    }
 }
