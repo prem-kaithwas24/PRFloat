@@ -129,6 +129,12 @@ struct ContentView: View {
         if settings.showPullRequests {
             parts.append(count == 0 ? "No PRs" : "\(count) PR\(count == 1 ? "" : "s")")
         }
+        if settings.showReviewRequests {
+            let reviewCount = store.reviewRequestedPRs.count
+            if reviewCount > 0 {
+                parts.append("\(reviewCount) to review")
+            }
+        }
         if settings.showAgents, let agentSummary = agentStore.summaryLine {
             parts.append(agentSummary)
         }
@@ -220,6 +226,9 @@ struct ContentView: View {
                     if settings.showPullRequests {
                         pullRequestsSection
                     }
+                    if settings.showReviewRequests {
+                        reviewRequestsSection
+                    }
                 }
                 .padding(.bottom, Theme.Space.sm)
             }
@@ -299,6 +308,52 @@ struct ContentView: View {
             SectionHeader(
                 title: "Pull Requests",
                 count: store.prs.isEmpty ? nil : store.prs.count
+            )
+            .background(.regularMaterial)
+        }
+    }
+
+    // MARK: - Reviews
+
+    @ViewBuilder
+    private var reviewRequestsSection: some View {
+        Section {
+            if store.isLoading && !store.hasData {
+                VStack(spacing: Theme.Space.sm) {
+                    SkeletonRow()
+                    SkeletonRow()
+                }
+                .padding(.horizontal, Theme.Space.md)
+            } else if store.reviewRequestedPRs.isEmpty {
+                EmptyStateView(
+                    title: "Nothing waiting on your review",
+                    systemImage: "checkmark.circle",
+                    message: nil
+                )
+            } else {
+                VStack(alignment: .leading, spacing: Theme.Space.md) {
+                    ForEach(store.reviewGroups) { group in
+                        VStack(alignment: .leading, spacing: Theme.Space.sm) {
+                            if store.reviewGroups.count > 1 {
+                                Text(group.repository)
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundStyle(.tertiary)
+                                    .lineLimit(1)
+                            }
+                            ForEach(group.prs) { pr in
+                                PRRowView(pr: pr, agents: []) {
+                                    store.openPR(pr)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, Theme.Space.md)
+            }
+        } header: {
+            SectionHeader(
+                title: "PRs to Review",
+                count: store.reviewRequestedPRs.isEmpty ? nil : store.reviewRequestedPRs.count
             )
             .background(.regularMaterial)
         }

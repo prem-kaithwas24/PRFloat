@@ -72,6 +72,9 @@ Each row shows the repo and branch, and the last thing you asked it to do.
 PR body (`- [ ]` / `- [x]`), a CI summary, a Draft pill, and an agent badge where one is
 working on that branch. Double-click a row, or use the arrow button, to open it on GitHub.
 
+**PRs to Review** — open PRs where you're requested as a reviewer, in the same grouped
+layout. A PR drops off this list once you submit a review (unless re-requested).
+
 Collapse the panel to a one-line strip; what needs you outranks what is merely running.
 
 ## Menu bar
@@ -130,5 +133,4 @@ export NOTARY_PROFILE="prfloat"     # xcrun notarytool store-credentials
 
 - Cloud agents (Claude on the web, Copilot agent) — local sessions only
 - Controlling agents from the panel; it is a read-only view
-- Review-requested PRs (authored only)
 - Multiple GitHub accounts, GitHub Enterprise Server
