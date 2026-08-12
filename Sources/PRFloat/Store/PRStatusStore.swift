@@ -120,6 +120,7 @@ final class PRStatusStore {
             // Expiry is not a data problem — hand it to the session so the UI explains it.
             session.markExpired()
             prs = []
+            reviewRequestedPRs = []
             errorMessage = GitHubAPIError.unauthorized.localizedDescription
         } catch let error as GitHubAPIError {
             consecutiveFailures += 1
