@@ -15,6 +15,7 @@ final class PRStatusStore {
     }
 
     private(set) var prs: [PRSummary] = []
+    private(set) var reviewRequestedPRs: [PRSummary] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     private(set) var isOffline = false
@@ -36,6 +37,12 @@ final class PRStatusStore {
 
     var groups: [Group] {
         Dictionary(grouping: prs, by: \.repository)
+            .map { Group(repository: $0.key, prs: $0.value.sorted { $0.number > $1.number }) }
+            .sorted { $0.repository.localizedCaseInsensitiveCompare($1.repository) == .orderedAscending }
+    }
+
+    var reviewGroups: [Group] {
+        Dictionary(grouping: reviewRequestedPRs, by: \.repository)
             .map { Group(repository: $0.key, prs: $0.value.sorted { $0.number > $1.number }) }
             .sorted { $0.repository.localizedCaseInsensitiveCompare($1.repository) == .orderedAscending }
     }
@@ -84,6 +91,7 @@ final class PRStatusStore {
     func refresh() async {
         guard let client = session.apiClient else {
             prs = []
+            reviewRequestedPRs = []
             errorMessage = nil
             return
         }
@@ -96,8 +104,14 @@ final class PRStatusStore {
         }
 
         do {
-            let list = try await PullRequestQuery.fetch(using: client)
+            async let authored = PullRequestQuery.fetch(using: client)
+            async let reviewRequested = PullRequestQuery.fetch(
+                using: client,
+                query: PullRequestQuery.reviewRequestedSearchQuery
+            )
+            let (list, reviewList) = try await (authored, reviewRequested)
             prs = list
+            reviewRequestedPRs = reviewList
             errorMessage = nil
             isOffline = false
             consecutiveFailures = 0
