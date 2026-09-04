@@ -106,4 +106,16 @@ struct PullRequestQueryTests {
         #expect(prs.isEmpty)
         #expect(http.bodyString(at: 0).contains("review-requested:@me"))
     }
+
+    @Test("first is a literal in the query, not a $first variable GitHub would reject as a string")
+    func firstIsNotASentVariable() async throws {
+        let http = StubHTTPClient(json: #"{"data":{"search":{"nodes":[]}}}"#)
+        let client = GitHubAPIClient(http: http, token: "t")
+
+        _ = try await PullRequestQuery.fetch(using: client)
+
+        let body = http.bodyString(at: 0)
+        #expect(body.contains("first: 50"))
+        #expect(!body.contains(#""first""#))
+    }
 }

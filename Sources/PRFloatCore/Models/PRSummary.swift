@@ -21,6 +21,9 @@ public struct CheckSummary: Equatable, Sendable {
 
     public var total: Int { passing + failing + pending }
 
+    /// True once every check has reported and none are failing or still running.
+    public var allPassing: Bool { total > 0 && failing == 0 && pending == 0 }
+
     public var label: String {
         if total == 0 { return "No checks" }
         if failing > 0 { return "\(failing) failing" }

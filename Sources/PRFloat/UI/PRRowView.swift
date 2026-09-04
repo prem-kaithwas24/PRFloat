@@ -66,6 +66,7 @@ struct PRRowView: View {
         }
         .padding(Theme.Space.sm + 2)
         .background(RoundedRectangle(cornerRadius: Theme.Radius.row).fill(Theme.rowBackground))
+        .neonGlow(pr.checks.allPassing)
         .contentShape(Rectangle())
         .onTapGesture(count: 2, perform: onOpen)
         .accessibilityElement(children: .combine)

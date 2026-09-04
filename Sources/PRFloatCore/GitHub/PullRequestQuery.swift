@@ -9,9 +9,14 @@ public enum PullRequestQuery {
     /// list naturally reflects "still waiting on you."
     public static let reviewRequestedSearchQuery = "is:pr is:open review-requested:@me archived:false"
 
-    public static let document = """
-    query($q: String!, $first: Int!) {
-      search(query: $q, type: ISSUE, first: $first) {
+    /// `first` is interpolated directly rather than passed as a `$first: Int!` variable:
+    /// `GitHubAPIClient.graphQL` only accepts `[String: String]` variables, so an Int
+    /// variable would be sent as a JSON string and GitHub's GraphQL API rejects that as a
+    /// type mismatch — silently returning zero PRs instead of the expected list.
+    private static func document(first: Int) -> String {
+        """
+    query($q: String!) {
+      search(query: $q, type: ISSUE, first: \(first)) {
         nodes {
           ... on PullRequest {
             number
@@ -40,6 +45,7 @@ public enum PullRequestQuery {
       }
     }
     """
+    }
 
     /// Fetches PRs matching `query` (defaulting to PRs authored by the signed-in user),
     /// across all visible repos.
@@ -49,8 +55,8 @@ public enum PullRequestQuery {
         query: String = searchQuery
     ) async throws -> [PRSummary] {
         let payload = try await client.graphQL(
-            query: document,
-            variables: ["q": query, "first": String(limit)],
+            query: document(first: limit),
+            variables: ["q": query],
             as: SearchPayload.self
         )
         return payload.search.nodes.compactMap { $0.value?.toSummary() }

@@ -66,6 +66,49 @@ struct SectionHeader: View {
     }
 }
 
+extension View {
+    /// Pulsing neon border used to draw attention to a row, e.g. a PR whose CI just went green.
+    @ViewBuilder
+    func neonGlow(_ active: Bool, color: Color = .green, cornerRadius: CGFloat = Theme.Radius.row) -> some View {
+        if active {
+            modifier(NeonGlowModifier(color: color, cornerRadius: cornerRadius))
+        } else {
+            self
+        }
+    }
+}
+
+private struct NeonGlowModifier: ViewModifier {
+    static let duration: Duration = .seconds(10)
+
+    let color: Color
+    let cornerRadius: CGFloat
+
+    @State private var pulsing = false
+    @State private var visible = true
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if visible {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(color, lineWidth: pulsing ? 2 : 1.5)
+                        .shadow(color: color.opacity(0.9), radius: pulsing ? 8 : 3)
+                        .shadow(color: color.opacity(0.6), radius: pulsing ? 14 : 6)
+                }
+            }
+            .task {
+                withAnimation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true)) {
+                    pulsing = true
+                }
+                try? await Task.sleep(for: Self.duration)
+                withAnimation(.easeOut(duration: 0.4)) {
+                    visible = false
+                }
+            }
+    }
+}
+
 /// Coloured status dot; the working state pulses so movement is visible at a glance.
 struct StatusDot: View {
     let color: Color

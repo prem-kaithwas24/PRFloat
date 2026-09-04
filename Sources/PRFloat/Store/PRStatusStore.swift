@@ -26,6 +26,10 @@ final class PRStatusStore {
     let session: GitHubSession
     private let settings: AppSettings
     private var timerTask: Task<Void, Never>?
+    /// Watches PRs with checks still running, independent of `settings.pollInterval` — so CI
+    /// completion is noticed promptly even if the user has the main poll set slow or manual.
+    private var ciWatchTask: Task<Void, Never>?
+    private static let ciWatchInterval: UInt64 = 120 * 1_000_000_000
     private var inFlight = false
     private var consecutiveFailures = 0
 
@@ -76,10 +80,34 @@ final class PRStatusStore {
     func stop() {
         timerTask?.cancel()
         timerTask = nil
+        ciWatchTask?.cancel()
+        ciWatchTask = nil
     }
 
     private func currentInterval() -> TimeInterval {
         TimeInterval(settings.pollInterval.rawValue)
+    }
+
+    private var hasPendingChecks: Bool {
+        prs.contains { $0.checks.pending > 0 } || reviewRequestedPRs.contains { $0.checks.pending > 0 }
+    }
+
+    /// Starts or stops the dedicated CI-watch loop based on whether any PR still has checks
+    /// running. Called after every successful refresh.
+    private func updateCIWatch() {
+        guard hasPendingChecks else {
+            ciWatchTask?.cancel()
+            ciWatchTask = nil
+            return
+        }
+        guard ciWatchTask == nil else { return }
+        ciWatchTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: Self.ciWatchInterval)
+                guard !Task.isCancelled else { break }
+                await self?.refresh()
+            }
+        }
     }
 
     private func restoreAndRefresh() async {
@@ -117,12 +145,14 @@ final class PRStatusStore {
             isOffline = false
             consecutiveFailures = 0
             lastRefresh = Date()
+            updateCIWatch()
         } catch GitHubAPIError.unauthorized {
             // Expiry is not a data problem — hand it to the session so the UI explains it.
             session.markExpired()
             prs = []
             reviewRequestedPRs = []
             errorMessage = GitHubAPIError.unauthorized.localizedDescription
+            updateCIWatch()
         } catch let error as GitHubAPIError {
             consecutiveFailures += 1
             isOffline = (error == .offline)
