@@ -24,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         store = PRStatusStore(session: session, settings: settings)
         agentStore = AgentStore()
-        orgStore = OrgMetricsStore(session: session)
+        orgStore = OrgMetricsStore(session: session, settings: settings)
 
         panelController = FloatingPanelController(
             store: store,
@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         store.stop()
         agentStore.stop()
+        orgStore.stop()
         FloatingPanelController.saveFrame(panelController.panel?.frame)
     }
 

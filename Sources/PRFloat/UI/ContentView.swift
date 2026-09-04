@@ -191,8 +191,10 @@ struct ContentView: View {
         .padding(.top, Theme.Space.sm)
         .padding(.bottom, Theme.Space.xs)
         .onChange(of: tab) { _, newValue in
-            if newValue == .orgMetric, !orgStore.hasData {
-                Task { await orgStore.refresh() }
+            if newValue == .orgMetric {
+                orgStore.start()
+            } else {
+                orgStore.stop()
             }
         }
     }

@@ -37,6 +37,7 @@ final class OrgMetricsStore {
     }
 
     private let session: GitHubSession
+    private let settings: AppSettings
     private let analyzer: UsageAnalyzer
     private let resolver: RepoResolver
     private let defaults: UserDefaults
@@ -44,14 +45,17 @@ final class OrgMetricsStore {
     private var transcripts: [TranscriptUsage] = []
     private var repositoryCache: [String: String?] = [:]
     private var inFlight = false
+    private var timerTask: Task<Void, Never>?
 
     init(
         session: GitHubSession,
+        settings: AppSettings,
         analyzer: UsageAnalyzer = UsageAnalyzer(),
         resolver: RepoResolver = RepoResolver(),
         defaults: UserDefaults = .standard
     ) {
         self.session = session
+        self.settings = settings
         self.analyzer = analyzer
         self.resolver = resolver
         self.defaults = defaults
@@ -64,6 +68,35 @@ final class OrgMetricsStore {
     /// Shown when no organization is chosen yet.
     var needsOrganizationChoice: Bool {
         organization.isEmpty && !organizations.isEmpty
+    }
+
+    // MARK: - Lifecycle
+
+    /// Starts polling while the Org metric tab is visible; an immediate refresh runs first.
+    func start() {
+        timerTask?.cancel()
+        timerTask = Task { [weak self] in
+            await self?.refresh()
+            while !Task.isCancelled {
+                guard let interval = self?.currentInterval(), interval > 0 else {
+                    try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+                    continue
+                }
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                guard !Task.isCancelled else { break }
+                await self?.refresh()
+            }
+        }
+    }
+
+    /// Stops polling, e.g. when the tab is no longer visible.
+    func stop() {
+        timerTask?.cancel()
+        timerTask = nil
+    }
+
+    private func currentInterval() -> TimeInterval {
+        TimeInterval(settings.pollInterval.rawValue)
     }
 
     func refresh(force: Bool = false) async {
